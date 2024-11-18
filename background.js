@@ -1,21 +1,18 @@
 let isTranslating = false;
 
-chrome.action.onClicked.addListener((tab) => {
-  isTranslating = !isTranslating;
-
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: toggleTranslation,
-    args: [isTranslating]
-  });
-});
-
-function toggleTranslation(translateStatus) {
-  if (translateStatus) {
-    console.log("Translation started.");
-    document.dispatchEvent(new CustomEvent("start-translation"));
-  } else {
-    console.log("Translation stopped.");
-    document.dispatchEvent(new CustomEvent("stop-translation"));
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "get-translation-status") {
+    sendResponse({ isTranslating });
+  } else if (request.action === "set-translation-status") {
+    isTranslating = request.status;
+    // 廣播狀態給所有活動的標籤頁
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, { 
+          action: "translation-status-changed", 
+          isTranslating: isTranslating 
+        }).catch(() => {});
+      });
+    });
   }
-}
+});

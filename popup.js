@@ -1,77 +1,90 @@
-let settings = {
-    fontSize: '18px',
-    position: 'bottom',
-    opacity: 70,
-    duration: 5
-};
+document.addEventListener('DOMContentLoaded', function() {
+    // 獲取元素
+    const container = document.querySelector('.container');
+    const startBtn = document.querySelector('.btn-start');
+    const stopBtn = document.querySelector('.btn-stop');
+    const closeBtn = document.querySelector('.close-btn');
+    const fontSizeBtns = document.querySelectorAll('.size-btn');
+    const opacitySlider = document.querySelector('#opacity-slider');
+    const status = document.querySelector('.status');
 
-// 載入儲存的設定
-chrome.storage.local.get('subtitleSettings', (data) => {
-    if (data.subtitleSettings) {
-        settings = { ...settings, ...data.subtitleSettings };
-        updateSettingsUI();
-    }
-});
+    // 從 storage 獲取設定
+    chrome.storage.local.get(['fontSize', 'opacity'], function(result) {
+        if (result.fontSize) {
+            document.querySelector(`.size-btn[data-size="${result.fontSize}"]`)?.classList.add('active');
+        }
+        if (result.opacity) {
+            opacitySlider.value = result.opacity * 100;
+        }
+    });
 
-// 更新UI以匹配設定
-function updateSettingsUI() {
-    document.getElementById('fontSize').value = settings.fontSize;
-    document.getElementById('position').value = settings.position;
-    document.getElementById('opacity').value = settings.opacity;
-    document.getElementById('duration').value = settings.duration;
-}
+    // 開始翻譯
+    startBtn.addEventListener('click', function() {
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {action: "start-translation"});
+            chrome.runtime.sendMessage({action: "set-translation-status", status: true});
+        });
+        status.textContent = "翻譯中...";
+        status.style.backgroundColor = "#d4edda";
+        status.style.color = "#155724";
+    });
 
-// 儲存設定
-function saveSettings() {
-    chrome.storage.local.set({ subtitleSettings: settings }, () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-                type: 'updateSettings',
-                settings: settings
+    // 停止翻譯
+    stopBtn.addEventListener('click', function() {
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {action: "stop-translation"});
+            chrome.runtime.sendMessage({action: "set-translation-status", status: false});
+        });
+        status.textContent = "已停止翻譯";
+        status.style.backgroundColor = "#f8d7da";
+        status.style.color = "#721c24";
+    });
+
+    // 關閉面板（只是隱藏 popup）
+    closeBtn.addEventListener('click', function() {
+        window.close();
+    });
+
+    // 字體大小按鈕
+    fontSizeBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            fontSizeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const fontSize = btn.dataset.size;
+            chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                    action: "update-style",
+                    property: "fontSize",
+                    value: fontSize
+                });
             });
+            chrome.storage.local.set({fontSize: fontSize});
         });
     });
-}
 
-// 監聽設定變更
-document.getElementById('fontSize').addEventListener('change', (e) => {
-    settings.fontSize = e.target.value;
-    saveSettings();
-});
+    // 透明度滑桿
+    opacitySlider.addEventListener('input', function() {
+        const opacity = this.value / 100;
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+                action: "update-style",
+                property: "opacity",
+                value: opacity
+            });
+        });
+        chrome.storage.local.set({opacity: opacity});
+    });
 
-document.getElementById('position').addEventListener('change', (e) => {
-    settings.position = e.target.value;
-    saveSettings();
-});
-
-document.getElementById('opacity').addEventListener('input', (e) => {
-    settings.opacity = parseInt(e.target.value);
-    saveSettings();
-});
-
-document.getElementById('duration').addEventListener('change', (e) => {
-    settings.duration = parseInt(e.target.value);
-    saveSettings();
-});
-
-// 開始/停止翻譯按鈕
-document.getElementById('startBtn').addEventListener('click', async () => {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs[0];
-    
-    if (tab.url.includes('udemy.com')) {
-        chrome.runtime.sendMessage({ command: "startTranslation" });
-        document.getElementById('status').textContent = '翻譯進行中...';
-        document.getElementById('startBtn').disabled = true;
-        document.getElementById('stopBtn').disabled = false;
-    } else {
-        document.getElementById('status').textContent = '請在Udemy課程頁面使用';
-    }
-});
-
-document.getElementById('stopBtn').addEventListener('click', () => {
-    chrome.runtime.sendMessage({ command: "stopTranslation" });
-    document.getElementById('status').textContent = '已停止翻譯';
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('stopBtn').disabled = true;
+    // 檢查當前翻譯狀態
+    chrome.runtime.sendMessage({action: "get-translation-status"}, function(response) {
+        if (response.isTranslating) {
+            status.textContent = "翻譯中...";
+            status.style.backgroundColor = "#d4edda";
+            status.style.color = "#155724";
+        } else {
+            status.textContent = "已停止翻譯";
+            status.style.backgroundColor = "#f8d7da";
+            status.style.color = "#721c24";
+        }
+    });
 });

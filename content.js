@@ -1,12 +1,19 @@
 let recognition;
 let subtitleContainer;
 
-document.addEventListener("start-translation", () => {
-  startTranslation();
-});
-
-document.addEventListener("stop-translation", () => {
-  stopTranslation();
+// 監聽來自 popup 的消息
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  switch (request.action) {
+    case "start-translation":
+      startTranslation();
+      break;
+    case "stop-translation":
+      stopTranslation();
+      break;
+    case "update-style":
+      updateSubtitleStyle(request.property, request.value);
+      break;
+  }
 });
 
 function startTranslation() {
@@ -15,7 +22,6 @@ function startTranslation() {
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = true;
-    // 新增: 設定連續語音辨識
     recognition.continuous = true;
 
     recognition.onresult = (event) => {
@@ -29,9 +35,8 @@ function startTranslation() {
       console.error("Speech recognition error:", event.error);
     };
 
-    // 新增: 當語音辨識結束時自動重新開始
     recognition.onend = () => {
-      if (recognition) {  // 確保還在翻譯模式
+      if (recognition) {
         recognition.start();
         console.log("Restarting speech recognition...");
       }
@@ -41,16 +46,37 @@ function startTranslation() {
   recognition.start();
   createSubtitleContainer();
   console.log("Speech recognition started.");
+  
+  // 通知 popup 翻譯狀態
+  chrome.runtime.sendMessage({ action: "translation-status", isTranslating: true });
 }
 
 function stopTranslation() {
   if (recognition) {
     recognition.stop();
-    recognition = null;  // 新增: 重設 recognition 物件
+    recognition = null;
     console.log("Speech recognition stopped.");
+    
+    // 通知 popup 翻譯狀態
+    chrome.runtime.sendMessage({ action: "translation-status", isTranslating: false });
   }
 
   removeSubtitleContainer();
+}
+
+// 新增：更新字幕樣式的函數
+function updateSubtitleStyle(property, value) {
+  if (!subtitleContainer) return;
+
+  switch (property) {
+    case 'fontSize':
+      subtitleContainer.style.fontSize = value;
+      break;
+    case 'opacity':
+      const bgColor = `rgba(0, 0, 0, ${value})`;
+      subtitleContainer.style.backgroundColor = bgColor;
+      break;
+  }
 }
 
 function createSubtitleContainer() {
@@ -67,6 +93,16 @@ function createSubtitleContainer() {
     subtitleContainer.style.borderRadius = "5px";
     subtitleContainer.style.zIndex = "9999";
     document.body.appendChild(subtitleContainer);
+
+    // 載入儲存的樣式設定
+    chrome.storage.local.get(['fontSize', 'opacity'], function(result) {
+      if (result.fontSize) {
+        subtitleContainer.style.fontSize = result.fontSize;
+      }
+      if (result.opacity !== undefined) {
+        subtitleContainer.style.backgroundColor = `rgba(0, 0, 0, ${result.opacity})`;
+      }
+    });
   }
 }
 
