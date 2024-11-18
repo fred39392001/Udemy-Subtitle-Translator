@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            width: 300px;
+            padding: 15px;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .settings {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .settings-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .setting-item {
+            margin-bottom: 8px;
+        }
+        .status {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+        }
+        select, input {
+            width: 100%;
+            padding: 5px;
+            margin-top: 3px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="startBtn">開始即時翻譯</button>
+        <button id="stopBtn">停止翻譯</button>
+        
+        <div class="settings">
+            <div class="settings-title">字幕設定</div>
+            <div class="setting-item">
+                <label>字幕大小</label>
+                <select id="fontSize">
+                    <option value="16px">小</option>
+                    <option value="18px" selected>中</option>
+                    <option value="24px">大</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>字幕位置</label>
+                <select id="position">
+                    <option value="top">上方</option>
+                    <option value="bottom" selected>下方</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <label>背景透明度</label>
+                <input type="range" id="opacity" min="0" max="100" value="70">
+            </div>
+            <div class="setting-item">
+                <label>字幕顯示時間 (秒)</label>
+                <input type="number" id="duration" min="1" max="10" value="5">
+            </div>
+        </div>
+        
+        <div class="status" id="status">未開始翻譯</div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

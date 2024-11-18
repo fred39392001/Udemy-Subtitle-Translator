@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "Udemy Subtitle Translator",
+    "version": "1.0",
+    "description": "Translate Udemy subtitles in real-time using SpeechRecognition and Google Translate.",
+    "permissions": ["activeTab", "scripting"],
+    "host_permissions": ["*://*.udemy.com/*"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_title": "Udemy Subtitle Translator"
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://*.udemy.com/*"],
+        "js": ["content.js"],
+        "css": ["styles.css"]
+      }
+    ]
+  }
+  
