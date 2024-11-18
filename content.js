@@ -15,6 +15,8 @@ function startTranslation() {
     recognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = true;
+    // 新增: 設定連續語音辨識
+    recognition.continuous = true;
 
     recognition.onresult = (event) => {
       const transcript = Array.from(event.results)
@@ -26,6 +28,14 @@ function startTranslation() {
     recognition.onerror = (event) => {
       console.error("Speech recognition error:", event.error);
     };
+
+    // 新增: 當語音辨識結束時自動重新開始
+    recognition.onend = () => {
+      if (recognition) {  // 確保還在翻譯模式
+        recognition.start();
+        console.log("Restarting speech recognition...");
+      }
+    };
   }
 
   recognition.start();
@@ -36,6 +46,7 @@ function startTranslation() {
 function stopTranslation() {
   if (recognition) {
     recognition.stop();
+    recognition = null;  // 新增: 重設 recognition 物件
     console.log("Speech recognition stopped.");
   }
 
